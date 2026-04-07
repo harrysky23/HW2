@@ -1,0 +1,51 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # ==========================================
+  # [CI 단계] 소스 코드를 바탕으로 도커 이미지 빌드 및 푸시
+  # ==========================================
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: harrysky23
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: harrysky23/mlops-sentiment-app:latest
+
+  # ==========================================
+  # [CD 단계] Self-hosted Runner(로컬)에서 새 이미지를 받고 컨테이너 교체
+  # ==========================================
+  deploy-to-self-hosted:
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+      - name: Pull Latest Docker Image
+        run: |
+          docker pull harrysky23/mlops-sentiment-app:latest
+
+      - name: Stop and Remove Existing Container
+        run: |
+          # 실행 중인 컨테이너가 있으면 안전하게 종료 및 삭제합니다. 없으면 통과합니다(|| true).
+          docker stop mlops-sentiment-app || true
+          docker rm mlops-sentiment-app || true
+
+      - name: Run New Container
+        run: |
+          # 새 버전의 이미지를 이용해 컨테이너 백그라운드 구동 (-d)
+          docker run -d --name mlops-sentiment-app -p 5000:5000 harrysky23/mlops-sentiment-app:latest

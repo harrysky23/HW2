@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis MLOps</title>
+    <!-- Use a modern Google font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0f111a;
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.5);
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --surface: rgba(30, 33, 43, 0.6);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            padding: 2rem;
+            margin: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 20px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 2.2rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            background: rgba(15, 17, 26, 0.6);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 14px 0 var(--accent-glow);
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .result-card {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--surface-border);
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        .label-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+        }
+
+        .label-positive {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .label-negative {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .confidence {
+            font-size: 1rem;
+            color: var(--text-sub);
+        }
+
+        .confidence strong {
+            color: var(--text-main);
+        }
+
+        .feedback-section {
+            margin-top: 1.5rem;
+        }
+
+        .feedback-title {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .feedback-controls {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .feedback-controls button {
+            flex: 1;
+        }
+
+        .btn-correct {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .btn-correct:hover {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-wrong {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .btn-wrong:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .mlops-footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .mlops-badge {
+            display: inline-block;
+            background: var(--warning-color);
+            color: #000;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .logs-container {
+            background: #000;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #a3e635;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            display: none;
+            border: 1px solid #333;
+        }
+        
+        .logs-container p {
+            margin: 0.2rem 0;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 1px solid var(--success-color);
+            border-left: 4px solid var(--success-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        /* Correction Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+        }
+        .correction-options {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast">Feedback recorded successfully!</div>
+
+    <!-- Correction Modal -->
+    <div class="modal" id="correctionModal">
+        <div class="modal-content">
+            <h3>Select the Correct Label</h3>
+            <p style="color: var(--text-sub); font-size: 0.9rem;">Help the model learn by providing the correct sentiment for this text.</p>
+            <div class="correction-options">
+                <button class="btn-primary" style="background: var(--success-color); box-shadow: none;" onclick="submitFeedback('Positive')">Positive</button>
+                <button class="btn-primary" style="background: var(--danger-color); box-shadow: none;" onclick="submitFeedback('Negative')">Negative</button>
+            </div>
+            <button class="btn-outline" style="margin-top: 1rem; width: 100%" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>NuraSentiment</h1>
+        <div class="subtitle">AI-Powered Sentiment Engine with Continual Learning</div>
+
+        <div class="input-group">
+            <textarea id="textInput" placeholder="Enter a sentence or review here..."></textarea>
+            <button class="btn-primary" id="predictBtn" onclick="makePrediction()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Analyze Sentiment
+            </button>
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <div class="prediction-header">
+                <div>
+                    <span class="label-badge" id="predictionBadge">Positive</span>
+                </div>
+                <div class="confidence">
+                    Confidence: <strong id="confidenceVal">98.5%</strong>
+                </div>
+            </div>
+
+            <div class="feedback-section">
+                <div class="feedback-title">Did the model get it right?</div>
+                <div class="feedback-controls">
+                    <button class="btn-correct" onclick="handleCorrect()">
+                        ✓ Correct
+                    </button>
+                    <button class="btn-wrong" onclick="handleWrong()">
+                        ✕ Wrong
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mlops-footer">
+            <div class="mlops-badge">MLOPS PIPELINE</div>
+            <p style="font-size: 0.9rem; color: var(--text-sub); margin-top: 0;">
+                The model learns from user feedback. Accumulate feedback and re-train the pipeline to improve accuracy.
+            </p>
+            <button class="btn-outline" style="width: 100%; border-color: rgba(99, 102, 241, 0.4);" id="retrainBtn" onclick="triggerRetrain()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Force Retrain Model
+            </button>
+
+            <div class="logs-container" id="logsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentText = "";
+        let currentPrediction = "";
+
+        async function makePrediction() {
+            const input = document.getElementById('textInput').value.trim();
+            if (!input) return;
+
+            const btn = document.getElementById('predictBtn');
+            btn.innerHTML = 'Analyzing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: input })
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentText = input;
+                    currentPrediction = data.prediction;
+                    
+                    const badge = document.getElementById('predictionBadge');
+                    badge.textContent = data.prediction;
+                    badge.className = 'label-badge ' + (data.prediction === 'Positive' ? 'label-positive' : 'label-negative');
+                    
+                    document.getElementById('confidenceVal').textContent = (data.confidence * 100).toFixed(1) + '%';
+                    
+                    document.getElementById('resultCard').style.display = 'block';
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error connecting to server.");
+            } finally {
+                btn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Analyze Sentiment';
+                btn.disabled = false;
+            }
+        }
+
+        function handleCorrect() {
+            submitFeedback(currentPrediction);
+        }
+
+        function handleWrong() {
+            // Show modal to ask what the real label is
+            document.getElementById('correctionModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('correctionModal').classList.remove('active');
+        }
+
+        async function submitFeedback(correctLabel) {
+            closeModal();
+            try {
+                const res = await fetch('/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: currentText, label: correctLabel })
+                });
+
+                if (res.ok) {
+                    showToast();
+                    // Hide the result card after feedback
+                    setTimeout(() => {
+                        document.getElementById('resultCard').style.display = 'none';
+                        document.getElementById('textInput').value = '';
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function triggerRetrain() {
+            const btn = document.getElementById('retrainBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Retraining Pipeline...';
+            btn.disabled = true;
+
+            const logsDiv = document.getElementById('logsContainer');
+            logsDiv.style.display = 'block';
+            logsDiv.innerHTML = '<p>> Initiating model retraining...</p>';
+
+            try {
+                const res = await fetch('/retrain', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.logs) {
+                    data.logs.forEach(log => {
+                        logsDiv.innerHTML += `<p>> ${log}</p>`;
+                    });
+                }
+
+                if (res.ok) {
+                    logsDiv.innerHTML += `<p style="color: var(--success-color);">> Pipeline successfully retrained and reloaded in memory.</p>`;
+                } else {
+                    logsDiv.innerHTML += `<p style="color: var(--danger-color);">> Error: ${data.error}</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+                logsDiv.innerHTML += `<p style="color: var(--danger-color);">> Network error during retraining.</p>`;
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                // scroll to bottom of logs
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
