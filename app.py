@@ -121,3 +121,4 @@ if __name__ == "__main__":
         print("Warning: model.pkl not found! Please run 'python train.py' first.")
     
     app.run(debug=True, port=5000)
+# Test CI/CD trigger
