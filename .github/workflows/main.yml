@@ -48,4 +48,4 @@ jobs:
       - name: Run New Container
         run: |
           # 새 버전의 이미지를 이용해 컨테이너 백그라운드 구동 (-d)
-          docker run -d --name mlops-sentiment-app -p 5000:5000 ${{ secrets.DOCKER_USERNAME }}/mlops-sentiment-app:latest
+          docker run -d --name mlops-sentiment-app -p 5001:5000 ${{ secrets.DOCKER_USERNAME }}/mlops-sentiment-app:latest
